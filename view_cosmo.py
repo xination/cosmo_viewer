@@ -6,7 +6,7 @@ import copy                 # for copy the list
 import xml.dom.minidom
 import sort_transition
 from  xml.dom.minidom import parse, parseString
-
+import math
 
 
 
@@ -422,7 +422,8 @@ class view_comso( object ):
         #
         strOuts = []
         occup_info = []
-
+        sumP = 0.
+        sumN = 0.
         print "orbit\t P \t N" 
         for i in range( len( order_list ) ):            
             for j in range( len( current_xml['orbit_name'] ) ):  
@@ -431,6 +432,9 @@ class view_comso( object ):
                   N_occup = float( occupation[j][0] )
                   P_occup = float( occupation[j][1] )
                   
+                  sumN += N_occup
+                  sumP += P_occup
+
                   s =  "%3s\t%4.2f\t%4.2f" \
                   %( current_xml['orbit_name'][j], P_occup, N_occup)
                   strOuts.append( s )
@@ -449,6 +453,9 @@ class view_comso( object ):
         for i in range( len(strOuts) ):
           print "%s" %strOuts[-i-1]
         
+         
+        print "\n%3s\t%4.f\t%4.f" %( "sum",  sumP, sumN )
+
         return occup_info
 
 
