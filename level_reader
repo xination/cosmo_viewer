@@ -1,0 +1,308 @@
+#!/usr/bin/python
+import subprocess           
+import sys
+import copy                 # for copy the list
+import xml.dom.minidom
+from  xml.dom.minidom import parse, parseString
+
+__doc__="""
+this is a simpler cosmo viewer, only for viewing levels.
+"""
+
+class Level_reader( object ):
+    
+    def __init__(self, xml_File_List ):
+        
+        self.file_database = xml_File_List # [] array type
+        
+                
+    
+    
+    
+    def run(self):
+         
+         self.cp_xml_files()
+         
+         data_list = self.parse_xml()
+         
+         if( len(self.file_database) == 2 ): 
+             
+             self.show_combine_two_xml(data_list)
+             
+	 elif ( len(self.file_database) == 1 ) :
+	    
+	     self.show_single_xml(data_list)
+
+         else:
+             print " need two xml files"  
+         
+    
+    
+    
+    
+    
+    
+    
+    def cp_xml_files(self):  
+        
+        '''
+        to make a copy of original xml files
+        '''
+        
+        # adding the root tag for the xml
+        # modify the original xml file.
+        
+        for i in range( len(self.file_database) ):
+            infile = open(       self.file_database[i]  ,'r')
+            oufile = open( "." + self.file_database[i] +"_copy",'w')
+            #file_database[i] = "."+ self.file_database[i] +"_copy"
+              
+            lines = infile.readlines()
+            lines = lines[1:]
+          
+            head="""\
+<?xml version="1.0"?>
+<root>
+        """
+            tail="</root>"+"\n"
+            good_one = []
+            good_one.append(head) 
+            good_one += lines 
+            good_one.append(tail)     
+            infile.close()
+             
+            for line in good_one:
+                oufile.write( line )
+            oufile.close()
+            
+            
+            
+    def parse_xml(self):
+        
+        """
+        To extract the xml files, and arrange into a data_list[ {state1},{state2},{state3} ]
+        
+        data_list is a array, and each element is a dictrionary.
+        
+        to see the xml1: data_list[0]
+        
+        to see the xml1 first state's energy: data_list[0]['Ex'][0]
+        to see the xml1 second state's energy: data_list[0]['Ex'][1]
+        
+        """
+        
+        
+        data_list = [] # the total result
+
+        for i in range( len(self.file_database) ):
+            
+            # create the Document object from parse() method.
+            doc = parse( open("." + self.file_database[i] +"_copy" ) )
+        
+            temp_dic = {}
+            temp_dic['Ex']   =[]
+            temp_dic['spin'] =[]
+            temp_dic['binding']=[]
+            temp_dic['occup'] = []
+            temp_dic['orbit_name'] = []
+            temp_dic['transition'] = []
+            temp_dic['state_id'] = []
+            temp_dic['A'] = 0
+            
+            
+            # get atomic mass
+            tag_system = doc.getElementsByTagName("system")
+            temp_dic['A'] = int(tag_system[0].getAttribute( 'A' ) )
+            
+            
+            
+            # get a list of all the tag "state"
+            tag_state_list = doc.getElementsByTagName("state")  
+            
+
+            
+            
+            # not in use 
+            if(0):
+                for state in tag_state_list: ##
+                    #
+                    # the list of < occupation > tag under a <state>
+                    # <occupation name="0f5" N="0.0260252" Z="0.0053174"/>
+                    # <occupation name="1p3" N="0.055295" Z="0.00611222"/>
+                    # <occupation name="1p1" N="0.00486805" Z="0.00280927"/>
+                    #
+                    tag_occupation_list =state.getElementsByTagName("occupation")
+                     
+                    single_state_occup = []
+                    
+                    
+                    for k in range ( len(tag_occupation_list) ): ###
+                         
+                        orbit = str( tag_occupation_list[k].getAttribute('name') )
+                        N_occup = tag_occupation_list[k].getAttribute('N')
+                        P_occup = tag_occupation_list[k].getAttribute('Z')                     
+                        single_state_occup.append(  (N_occup, P_occup) ) 
+                        pass ###
+                    
+                    temp_dic['occup'].append(single_state_occup)
+                    pass ##         
+                    
+                
+                for state in tag_state_list: ##
+                    
+                    #
+                    # <transition name="B(E2)" final="0+(1)" B="8.90153"/>
+                    #
+                    tag_transition_list =state.getElementsByTagName("transition")
+                     
+                    single_state_transition = []
+                    
+                    
+                    for k in range ( len(tag_transition_list) ): ###
+                         
+                        mode        = str( tag_transition_list[k].getAttribute('name') )
+                        final_state =      tag_transition_list[k].getAttribute('final')
+                        reduceB     =      tag_transition_list[k].getAttribute('B')  
+                        
+                        single_state_transition.append(  (mode, final_state, reduceB) ) 
+                        pass ###
+                    
+                    temp_dic['transition'].append(single_state_transition)
+                    pass ##         
+                
+            # get the orbit name in the model space.
+                valencespace = doc.getElementsByTagName("valencespace")
+                orbit_list = valencespace[0].getElementsByTagName("orbital")
+                
+                for k in range ( len( orbit_list ) ):
+        
+                    orbit = str( orbit_list [k].getAttribute( 'name' ) )
+                    temp_dic['orbit_name'].append(orbit)
+                    pass             
+            
+            
+            
+            # <state J="0" P="+" T="0" E="-87.0896" name="0+(1)" Ex="0">
+            for item in tag_state_list:
+                # print("this is Ex: ", item.getAttribute('Ex') )
+                Ex = item.getAttribute( 'Ex' )
+                spin = str( item.getAttribute( 'J' ) ) + str( item.getAttribute( 'P' ) )
+                binding = float( item.getAttribute( 'E' ) )
+                id = item.getAttribute( 'name' )
+                
+                temp_dic['Ex'].append( Ex )
+                temp_dic['spin'].append( spin )
+                temp_dic['binding'].append( binding )
+                temp_dic['state_id'].append( id )
+
+                pass
+            
+                           
+            
+            
+            data_list.append(temp_dic )
+        if(0): print( data_list[0] )
+        return data_list
+        pass  
+    
+    def show_single_xml( self, data_list):
+
+	current_xml = data_list[ 0]
+
+	min_binging = current_xml['binding'][0]
+
+	list = []
+
+        for i in range( len(current_xml['binding'])   ):           
+            temp = (current_xml['binding'][i] - min_binging, current_xml['state_id'][i]  )
+            list.append( temp  )
+	
+	
+	writeOut = open('levels.txt','w')
+        strOut = '' 
+
+        print "\n    Ex\tspin"
+        print "----------------------------"
+        for i in range( len(list)   ):
+            
+	    print " %4i\t%4s %3s" %(int(list[i][0]*1000+0.5), list[i][1][:-3], list[i][1][-3:])
+	    
+	    #strOut += "%4i\t%4s %3s \n" %(int(list[i][0]*1000+0.5), list[i][1][:-3], list[i][1][-3:])
+	    strOut += "%4i\t%4s \n" %(int(list[i][0]*1000+0.5), list[i][1][:-3])
+	
+	    if ( (i+1) %10 ==0 ): print " -  -  -  -  - "
+	
+	writeOut.write(strOut)
+	writeOut.close()
+	print "results are also saved to levels.txt"
+        pass
+
+
+
+
+
+    def show_combine_two_xml( self, data_list ):
+                
+        current_xml1 = data_list[ 0 ]
+        current_xml2 = data_list[ 1 ]
+
+        #
+        # find out the min binding energy
+        #
+        min_binging = 0  
+        
+        
+        if current_xml1['binding'][0] < current_xml2['binding'][0]:
+            min_binging = current_xml1['binding'][0]
+        else: 
+            min_binging = current_xml2['binding'][0]
+
+        list=[]
+        
+        for i in range( len(current_xml1['binding'])   ):           
+            temp = (current_xml1['binding'][i] - min_binging, current_xml1['state_id'][i]  )
+            list.append( temp  )
+            
+        for i in range( len(current_xml2['binding'])   ):
+            temp = (current_xml2['binding'][i] - min_binging, current_xml2['state_id'][i]  )
+            list.append( temp  )
+        
+        
+        #
+        # sort by binding energy
+        #
+        list.sort( key= lambda x: x[0] )
+	
+	writeOut = open('levels.txt','w')
+        strOut = '' 
+
+        print "\n    Ex\tspin"
+        print "----------------------------"
+        for i in range( len(list)   ):
+            
+	    print " %4i\t%4s %3s" %(int(list[i][0]*1000+0.5), list[i][1][:-3], list[i][1][-3:])
+	    
+	    strOut += " %4i\t%4s %3s \n" %(int(list[i][0]*1000+0.5), list[i][1][:-3], list[i][1][-3:])
+	
+	    if ( (i+1) %10 ==0 ): print " -  -  -  -  - "
+	
+	writeOut.write(strOut)
+	writeOut.close()
+	print "results are also saved to levels.txt"
+        pass
+
+
+
+
+
+
+     
+if __name__ == '__main__':
+    
+    if len( sys.argv ) == 1: 
+	print "you should put one or two xml files"
+    else:
+	xmls =  sys.argv[1:]
+    
+    level_reader = Level_reader(xmls)
+    level_reader.run()    

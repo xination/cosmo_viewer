@@ -1292,7 +1292,7 @@ class view_comso( object ):
         
         print "\n    Ex\tspin"
         for i in range( len(list)   ):
-            print " %4i\t%4s %3s" %(int(list[i][0]*1000+0.5), list[i][1][:-3], list[i][1][-3:])
+            print " %4i\t%5s %3s" %(int(list[i][0]*1000+0.5), list[i][1][:-3], list[i][1][-3:])
         
         temppp = raw_input("type any key to continue..")    
 
