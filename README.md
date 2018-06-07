@@ -9,3 +9,4 @@ git clone https://github.com/xination/cosmo_viewer <br>
  <br>
  <br>
  I include some xml files for you to try, which are from my thesis work.
+ To visualize data, one needs xmgrace.
