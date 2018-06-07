@@ -1304,7 +1304,7 @@ class view_comso( object ):
       '''
       remove files such as .xxx_copy
       '''
-      cmd = "rm .*_copy .xmgrace.script >/dev/null"
+      cmd = "rm .*_copy .xmgrace.script 2>/dev/null"
       subprocess.call(cmd,shell=True)
     
     def cp_xml_files(self):  
